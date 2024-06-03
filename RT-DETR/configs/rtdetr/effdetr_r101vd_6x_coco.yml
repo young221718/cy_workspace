@@ -16,7 +16,7 @@ HybridEncoder:
   dim_feedforward: 2048
 
 RTDETRTransformer:
-  feat_channels: [384, 384, 384]
+  feat_channels: [384, 384, 384, 384, 384]
 
 optimizer:
   type: AdamW
