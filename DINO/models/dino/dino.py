@@ -35,6 +35,8 @@ from .utils import sigmoid_focal_loss, MLP
 
 from ..registry import MODULE_BUILD_FUNCS
 from .dn_components import prepare_for_cdn,dn_post_process
+
+
 class DINO(nn.Module):
     """ This is the Cross-Attention Detector module that performs object detection """
     def __init__(self, backbone, transformer, num_classes, num_queries, 
