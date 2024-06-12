@@ -6,7 +6,7 @@ postprocessor: RTDETRPostProcessor
 
 RTDETR:
   backbone: PResNet
-  encoder: EfficientEncoder
+  encoder: HybridEncoder
   decoder: RTDETRTransformer
   multi_scale: [640]
 
@@ -17,16 +17,16 @@ PResNet:
   return_idx: [1, 2, 3]
   num_stages: 4
   freeze_norm: True
-  pretrained: True
+  pretrained: True d
 
-EfficientEncoder:
+HybridEncoder:
   in_channels: [512, 1024, 2048]
   feat_strides: [8, 16, 32]
 
   # intra
   hidden_dim: 256
-  encoder_feat_strides: [64, 128]
-  num_encoder_layers: [1, 1]
+  use_encoder_idx: [2]
+  num_encoder_layers: 1
   nhead: 8
   dim_feedforward: 1024
   dropout: 0.
@@ -34,16 +34,18 @@ EfficientEncoder:
   pe_temperature: 10000
 
   # cross
+  expansion: 1.0
+  depth_mult: 1
   act: "silu"
-  num_bifpn_layers: 7
+
   # eval
   eval_spatial_size: [640, 640]
 
 RTDETRTransformer:
-  feat_channels: [256, 256, 256, 256, 256]
-  feat_strides: [8, 16, 32, 64, 128]
+  feat_channels: [256, 256, 256]
+  feat_strides: [8, 16, 32]
   hidden_dim: 256
-  num_levels: 5
+  num_levels: 3
 
   num_queries: 300
 
