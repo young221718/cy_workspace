@@ -45,7 +45,7 @@ class RTDETR_auxloss(nn.Module):
             self.backbone_logits = nn.Sequential(
                 nn.AdaptiveAvgPool2d((1, 1)),
                 nn.Flatten(1),
-                nn.Linear(encoder.in_channels[-1], num_classes),
+                nn.Linear(encoder.in_channels[-1], num_classes*2),
             )
 
         self.encoder_aux_loss = encoder_aux_loss

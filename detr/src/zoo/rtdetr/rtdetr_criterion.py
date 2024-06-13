@@ -396,6 +396,9 @@ class SetCriterion(nn.Module):
 
         if "backbone_logits" in outputs:
             src_logits = outputs["backbone_logits"]
+            B, _ = src_logits.shape
+            src_logits = src_logits.reshape(B, -1, 2)
+            
             idx = self._get_src_permutation_idx(indices)
             target_classes_o = torch.cat(
                 [t["labels"][J] for t, (_, J) in zip(targets, indices)]
@@ -410,9 +413,13 @@ class SetCriterion(nn.Module):
             
             target = F.one_hot(target_classes, num_classes=self.num_classes + 1)[..., :-1]
             target = torch.sum(target, dim=1)
+            target = (target >= 1).to(torch.int64)
             
-            loss = F.binary_cross_entropy_with_logits(
-                src_logits, target * 1.0, reduction="mean"
+                        
+            src_logits = src_logits.reshape(-1, 2)
+            target = target.reshape(-1)
+            loss = F.cross_entropy(
+                src_logits, target, reduction="mean"
             )
             losses.update({"backbone_logits": loss * self.weight_dict["backbone_logits"] })
         
