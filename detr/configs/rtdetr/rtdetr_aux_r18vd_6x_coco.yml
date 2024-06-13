@@ -4,11 +4,11 @@ __include__: [
   '../runtime.yml',
   './include/dataloader.yml',
   './include/optimizer.yml',
-  './include/rtdetr_r50vd.yml',
+  './include/rtdetr_r50vd_aux_loss.yml',
 ]
 
 
-output_dir: ./output/rtdetr_r18vd_6x_coco
+output_dir: /home/prml/StudentsWork/ChanYoung/Experiments/rtdetr_aux_r18vd_backbone
 
 PResNet:
   depth: 18
@@ -46,3 +46,11 @@ optimizer:
   lr: 0.0001
   betas: [0.9, 0.999]
   weight_decay: 0.0001
+
+
+## please erase the following lines if you want to use the default setting
+SetCriterion:
+  weight_dict: {loss_vfl: 1, loss_bbox: 5, loss_giou: 2, backbone_logits: 1.}
+  losses: ['vfl', 'boxes',]
+  alpha: 0.75
+  gamma: 2.0

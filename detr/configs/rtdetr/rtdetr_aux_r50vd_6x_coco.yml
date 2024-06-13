@@ -1,0 +1,16 @@
+__include__: [
+  '../dataset/coco_detection.yml',
+  '../runtime.yml',
+  './include/dataloader.yml',
+  './include/optimizer.yml',
+  './include/rtdetr_r50vd_aux_loss.yml',
+]
+
+output_dir: /home/prml/StudentsWork/ChanYoung/Experiments/rtdetr_aux_r50vd_backbone
+
+
+SetCriterion:
+  weight_dict: {loss_vfl: 1, loss_bbox: 5, loss_giou: 2, backbone_logits: 1.}
+  losses: ['vfl', 'boxes',]
+  alpha: 0.75
+  gamma: 2.0

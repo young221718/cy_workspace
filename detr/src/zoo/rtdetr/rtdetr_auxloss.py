@@ -12,7 +12,7 @@ from src.core import register
 
 
 __all__ = [
-    "RTDETR",
+    "RTDETR_auxloss",
 ]
 
 
@@ -32,7 +32,6 @@ class RTDETR_auxloss(nn.Module):
         multi_scale=None,
         num_classes=80,
         backbone_aux_loss=False,
-        backbone_last_channels=2048,
         encoder_aux_loss=False,
     ):
         super().__init__()
@@ -46,7 +45,7 @@ class RTDETR_auxloss(nn.Module):
             self.backbone_logits = nn.Sequential(
                 nn.AdaptiveAvgPool2d((1, 1)),
                 nn.Flatten(1),
-                nn.Linear(backbone_last_channels, num_classes),
+                nn.Linear(encoder.in_channels[-1], num_classes),
             )
 
         self.encoder_aux_loss = encoder_aux_loss
@@ -61,7 +60,7 @@ class RTDETR_auxloss(nn.Module):
         out = {}
         x = self.backbone(x)
         if self.backbone_aux_loss and targets is not None:
-            out["backbone_logits"] = self.backbone_logits(x)
+            out["backbone_logits"] = self.backbone_logits(x[-1])
 
         x = self.encoder(x)
         if self.encoder_aux_loss and targets is not None:

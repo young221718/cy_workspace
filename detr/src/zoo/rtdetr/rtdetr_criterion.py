@@ -256,22 +256,30 @@ class SetCriterion(nn.Module):
         }
         return losses
 
-    def loss_backbone_bce(self, outputs, targets, indices):
+    def loss_backbone_bce(self, outputs, targets, indices, num_boxes):
         assert "backbone_logits" in outputs
 
+        src_logits = outputs["backbone_logits"]
         idx = self._get_src_permutation_idx(indices)
         target_classes_o = torch.cat(
             [t["labels"][J] for t, (_, J) in zip(targets, indices)]
         )
         target_classes = torch.full(
-            src_logits.shape[:2],
+            outputs["pred_logits"].shape[:2],
             self.num_classes,
             dtype=torch.int64,
             device=src_logits.device,
         )
         target_classes[idx] = target_classes_o
-
+        
         target = F.one_hot(target_classes, num_classes=self.num_classes + 1)[..., :-1]
+        target = torch.sum(target, dim=1)
+        
+        loss = F.binary_cross_entropy_with_logits(
+            src_logits, target * 1.0, reduction="none"
+        )
+        loss = loss.mean(1).sum() * src_logits.shape[1]
+        return {"backbone_logits": loss}
 
     def _get_src_permutation_idx(self, indices):
         # permute predictions following indices
@@ -387,10 +395,28 @@ class SetCriterion(nn.Module):
                     losses.update(l_dict)
 
         if "backbone_logits" in outputs:
-            losses["loss_backbone"] = F.cross_entropy(
-                outputs["backbone_logits"], torch.cat([t["labels"] for t in targets])
+            src_logits = outputs["backbone_logits"]
+            idx = self._get_src_permutation_idx(indices)
+            target_classes_o = torch.cat(
+                [t["labels"][J] for t, (_, J) in zip(targets, indices)]
             )
-
+            target_classes = torch.full(
+                outputs["pred_logits"].shape[:2],
+                self.num_classes,
+                dtype=torch.int64,
+                device=src_logits.device,
+            )
+            target_classes[idx] = target_classes_o
+            
+            target = F.one_hot(target_classes, num_classes=self.num_classes + 1)[..., :-1]
+            target = torch.sum(target, dim=1)
+            
+            loss = F.binary_cross_entropy_with_logits(
+                src_logits, target * 1.0, reduction="none"
+            )
+            loss = loss.mean(1).mean() 
+            losses.update({"backbone_logits": loss * self.weight_dict["backbone_logits"] })
+        
         return losses
 
     @staticmethod
