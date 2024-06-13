@@ -412,9 +412,8 @@ class SetCriterion(nn.Module):
             target = torch.sum(target, dim=1)
             
             loss = F.binary_cross_entropy_with_logits(
-                src_logits, target * 1.0, reduction="none"
+                src_logits, target * 1.0, reduction="mean"
             )
-            loss = loss.mean(1).mean() 
             losses.update({"backbone_logits": loss * self.weight_dict["backbone_logits"] })
         
         return losses
