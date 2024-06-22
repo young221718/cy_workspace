@@ -1,0 +1,27 @@
+__include__:
+  [
+    "../dataset/miap_detection.yml",
+    "../runtime.yml",
+    "./include/dataloader.yml",
+    "./include/optimizer.yml",
+    "./include/rtdetr_r50vd_size640.yml",
+  ]
+output_dir: /home/prml/StudentsWork/ChanYoung/Experiments/rtdetr_miap_r101vd
+
+PResNet:
+  depth: 101
+
+HybridEncoder:
+  # intra
+  hidden_dim: 384
+  dim_feedforward: 2048
+
+RTDETRTransformer:
+  feat_channels: [384, 384, 384]
+  hidden_dim: 384
+
+optimizer:
+  type: AdamW
+  params:
+    - params: "backbone"
+      lr: 0.000001
