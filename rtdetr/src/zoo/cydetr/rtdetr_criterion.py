@@ -256,30 +256,62 @@ class SetCriterion(nn.Module):
         }
         return losses
 
-    def loss_backbone_bce(self, outputs, targets, indices, num_boxes):
-        assert "backbone_logits" in outputs
+    def loss_many2one(self, outputs, targets, indices, num_boxes):
+        """Loss for many-to-one matching in Faster R-CNN.
+        Implement by chanyoung
+        """
+        assert "pred_boxes" in outputs
+        # idx = self._get_src_permutation_idx(indices)
 
-        src_logits = outputs["backbone_logits"]
-        idx = self._get_src_permutation_idx(indices)
-        target_classes_o = torch.cat(
-            [t["labels"][J] for t, (_, J) in zip(targets, indices)]
-        )
-        target_classes = torch.full(
-            outputs["pred_logits"].shape[:2],
-            self.num_classes,
-            dtype=torch.int64,
-            device=src_logits.device,
-        )
-        target_classes[idx] = target_classes_o
-        
-        target = F.one_hot(target_classes, num_classes=self.num_classes + 1)[..., :-1]
-        target = torch.sum(target, dim=1)
-        
-        loss = F.binary_cross_entropy_with_logits(
-            src_logits, target * 1.0, reduction="none"
-        )
-        loss = loss.mean(1).sum() * src_logits.shape[1]
-        return {"backbone_logits": loss}
+        target_boxes_list = [t["boxes"] for t in targets]
+        target_label_list = [t["labels"] for t in targets]
+        postive_loss = 0
+        negative_loss = 0
+
+        for src_boxes, src_classes, tgt_boxes, tgt_classes in zip(
+            outputs["pred_boxes"],
+            outputs["pred_logits"],
+            target_boxes_list,
+            target_label_list,
+        ):
+            if len(tgt_boxes) == 0:
+                neg_idx = torch.ones(len(src_boxes)).bool()
+                pos_idx = torch.zeros(len(src_boxes)).bool()
+            else:
+                ious, _ = box_iou(
+                    box_cxcywh_to_xyxy(src_boxes), box_cxcywh_to_xyxy(tgt_boxes)
+                )
+                max_iou, max_idx = ious.topk(1, dim=1)
+
+                # postive, negative, ignore sample 분류
+                pos_idx = torch.flatten(max_iou > 0.5)
+                neg_idx = torch.flatten(max_iou < 0.4)
+
+            # positive sample loss
+            if pos_idx.sum() > 0:
+                postive_loss += F.l1_loss(
+                    src_boxes[pos_idx],
+                    tgt_boxes[max_idx[pos_idx]].reshape(-1, 4),
+                    reduction="mean",
+                )
+                postive_loss = F.cross_entropy(
+                    src_classes[pos_idx],
+                    tgt_classes[max_idx[pos_idx]].reshape(-1),
+                    reduction="mean",
+                )
+
+            # negative sample loss
+            if neg_idx.sum() > 0:
+                negative_loss += F.binary_cross_entropy_with_logits(
+                    src_classes[neg_idx],
+                    torch.zeros_like(src_classes[neg_idx]),
+                    reduction="mean",
+                )
+
+        loss = postive_loss + negative_loss
+        loss /= len(target_boxes_list)
+
+        return {"loss_many2one": loss}
 
     def _get_src_permutation_idx(self, indices):
         # permute predictions following indices
@@ -306,6 +338,7 @@ class SetCriterion(nn.Module):
             "bce": self.loss_labels_bce,
             "focal": self.loss_labels_focal,
             "vfl": self.loss_labels_vfl,
+            "many2one": self.loss_many2one,
         }
         assert loss in loss_map, f"do you really want to compute {loss} loss?"
         return loss_map[loss](outputs, targets, indices, num_boxes, **kwargs)
@@ -394,35 +427,6 @@ class SetCriterion(nn.Module):
                     l_dict = {k + f"_dn_{i}": v for k, v in l_dict.items()}
                     losses.update(l_dict)
 
-        if "backbone_logits" in outputs:
-            src_logits = outputs["backbone_logits"]
-            B, _ = src_logits.shape
-            src_logits = src_logits.reshape(B, -1, 2)
-            
-            idx = self._get_src_permutation_idx(indices)
-            target_classes_o = torch.cat(
-                [t["labels"][J] for t, (_, J) in zip(targets, indices)]
-            )
-            target_classes = torch.full(
-                outputs["pred_logits"].shape[:2],
-                self.num_classes,
-                dtype=torch.int64,
-                device=src_logits.device,
-            )
-            target_classes[idx] = target_classes_o
-            
-            target = F.one_hot(target_classes, num_classes=self.num_classes + 1)[..., :-1]
-            target = torch.sum(target, dim=1)
-            target = (target >= 1).to(torch.int64)
-            
-                        
-            src_logits = src_logits.reshape(-1, 2)
-            target = target.reshape(-1)
-            loss = F.cross_entropy(
-                src_logits, target, reduction="mean"
-            )
-            losses.update({"backbone_logits": loss * self.weight_dict["backbone_logits"] })
-        
         return losses
 
     @staticmethod
