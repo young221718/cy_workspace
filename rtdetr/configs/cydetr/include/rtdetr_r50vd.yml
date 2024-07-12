@@ -1,10 +1,10 @@
 task: detection
 
-model: RTDETR
+model: DETR
 criterion: SetCriterion
 postprocessor: RTDETRPostProcessor
 
-RTDETR:
+DETR:
   backbone: PResNet
   encoder: HybridEncoder
   decoder: RTDETRTransformer

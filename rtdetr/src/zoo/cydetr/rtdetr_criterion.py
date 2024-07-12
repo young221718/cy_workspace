@@ -256,24 +256,27 @@ class SetCriterion(nn.Module):
         }
         return losses
 
-    def loss_many2one(self, outputs, targets, indices, num_boxes):
+    def loss_many2one(self, outputs, targets):
         """Loss for many-to-one matching in Faster R-CNN.
         Implement by chanyoung
         """
-        assert "pred_boxes" in outputs
+        assert len(outputs) == len(targets)
         # idx = self._get_src_permutation_idx(indices)
 
         target_boxes_list = [t["boxes"] for t in targets]
         target_label_list = [t["labels"] for t in targets]
-        postive_loss = 0
-        negative_loss = 0
+        temp_losses = []
+        num_pos_idx = 0
+        num_neg_idx = 0
 
-        for src_boxes, src_classes, tgt_boxes, tgt_classes in zip(
-            outputs["pred_boxes"],
-            outputs["pred_logits"],
+        for output, tgt_boxes, tgt_classes in zip(
+            outputs,
             target_boxes_list,
             target_label_list,
         ):
+            src_boxes = output["pred_boxes"]
+            src_classes = output["pred_logits"]
+
             if len(tgt_boxes) == 0:
                 neg_idx = torch.ones(len(src_boxes)).bool()
                 pos_idx = torch.zeros(len(src_boxes)).bool()
@@ -287,29 +290,43 @@ class SetCriterion(nn.Module):
                 pos_idx = torch.flatten(max_iou > 0.5)
                 neg_idx = torch.flatten(max_iou < 0.4)
 
+            target = F.one_hot(tgt_classes, num_classes=self.num_classes + 1)
             # positive sample loss
             if pos_idx.sum() > 0:
-                postive_loss += F.l1_loss(
-                    src_boxes[pos_idx],
-                    tgt_boxes[max_idx[pos_idx]].reshape(-1, 4),
-                    reduction="mean",
+                temp_losses.append(
+                    F.smooth_l1_loss(
+                        src_boxes[pos_idx],
+                        tgt_boxes[max_idx[pos_idx]].reshape(-1, 4),
+                        reduction="sum",
+                    ).flatten(0)
                 )
-                postive_loss = F.cross_entropy(
-                    src_classes[pos_idx],
-                    tgt_classes[max_idx[pos_idx]].reshape(-1),
-                    reduction="mean",
+                temp_losses.append(
+                    torchvision.ops.sigmoid_focal_loss(
+                        src_classes[pos_idx],
+                        target[max_idx[pos_idx]].squeeze(1).float(),
+                        self.alpha,
+                        self.gamma,
+                        reduction="sum",
+                    )
                 )
+                num_pos_idx += pos_idx.sum().cpu()
 
             # negative sample loss
             if neg_idx.sum() > 0:
-                negative_loss += F.binary_cross_entropy_with_logits(
-                    src_classes[neg_idx],
-                    torch.zeros_like(src_classes[neg_idx]),
-                    reduction="mean",
+                neg_target = torch.ones_like(src_classes[neg_idx])
+                neg_target[:, -1] = 1
+                temp_losses.append(
+                    torchvision.ops.sigmoid_focal_loss(
+                        src_classes[neg_idx],
+                        neg_target.float(),
+                        self.alpha,
+                        self.gamma,
+                        reduction="sum",
+                    )
                 )
+                num_neg_idx += neg_idx.sum().cpu()
 
-        loss = postive_loss + negative_loss
-        loss /= len(target_boxes_list)
+        loss = sum(temp_losses) / (num_pos_idx + num_neg_idx)
 
         return {"loss_many2one": loss}
 
@@ -338,7 +355,6 @@ class SetCriterion(nn.Module):
             "bce": self.loss_labels_bce,
             "focal": self.loss_labels_focal,
             "vfl": self.loss_labels_vfl,
-            "many2one": self.loss_many2one,
         }
         assert loss in loss_map, f"do you really want to compute {loss} loss?"
         return loss_map[loss](outputs, targets, indices, num_boxes, **kwargs)
@@ -426,6 +442,12 @@ class SetCriterion(nn.Module):
                     }
                     l_dict = {k + f"_dn_{i}": v for k, v in l_dict.items()}
                     losses.update(l_dict)
+
+        if "enc_outputs" in outputs:
+            aux_outputs = outputs["enc_outputs"]
+            l_dict = self.loss_many2one(aux_outputs, targets)
+
+            losses.update(l_dict)
 
         return losses
 

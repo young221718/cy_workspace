@@ -18,7 +18,7 @@ from .utils import bias_init_with_prob
 from src.core import register
 
 
-__all__ = ["RTDETRTransformer"]
+__all__ = ["CYDecoder"]
 
 
 class MLP(nn.Module):
@@ -327,7 +327,7 @@ class TransformerDecoder(nn.Module):
 
 
 @register
-class RTDETRTransformer(nn.Module):
+class CYDecoder(nn.Module):
     __share__ = ["num_classes"]
 
     def __init__(
@@ -355,7 +355,7 @@ class RTDETRTransformer(nn.Module):
         aux_loss=True,
     ):
 
-        super(RTDETRTransformer, self).__init__()
+        super(CYDecoder, self).__init__()
         assert position_embed_type in [
             "sine",
             "learned",
@@ -416,7 +416,7 @@ class RTDETRTransformer(nn.Module):
                 hidden_dim,
             ),
         )
-        self.enc_score_head = nn.Linear(hidden_dim, num_classes)
+        self.enc_score_head = nn.Linear(hidden_dim, num_classes + 1)
         self.enc_bbox_head = MLP(hidden_dim, hidden_dim, 4, num_layers=3)
 
         # decoder head
@@ -586,8 +586,14 @@ class RTDETRTransformer(nn.Module):
 
         output_memory = self.enc_output(memory)
 
-        enc_outputs_class = self.enc_score_head(output_memory)
+        enc_outputs_class_full = self.enc_score_head(output_memory)
+        enc_outputs_class = enc_outputs_class_full[:, :, :-1]
         enc_outputs_coord_unact = self.enc_bbox_head(output_memory) + anchors
+
+        enc_outputs = {
+            "enc_pred_logits": enc_outputs_class_full,
+            "enc_pred_bbox": F.sigmoid(enc_outputs_coord_unact),
+        }
 
         _, topk_ind = torch.topk(
             enc_outputs_class.max(-1).values, self.num_queries, dim=1
@@ -600,6 +606,7 @@ class RTDETRTransformer(nn.Module):
             ),
         )
 
+        # enc_topk_bboxes 의미는 박스의 좌표 정보, 0~1 사이의 값으로 표현됨
         enc_topk_bboxes = F.sigmoid(reference_points_unact)
         if denoising_bbox_unact is not None:
             reference_points_unact = torch.concat(
@@ -624,7 +631,13 @@ class RTDETRTransformer(nn.Module):
         if denoising_class is not None:
             target = torch.concat([denoising_class, target], 1)
 
-        return target, reference_points_unact.detach(), enc_topk_bboxes, enc_topk_logits
+        return (
+            target,
+            reference_points_unact.detach(),
+            enc_topk_bboxes,
+            enc_topk_logits,
+            enc_outputs,
+        )
 
     def forward(self, feats, targets=None):
 
@@ -652,7 +665,7 @@ class RTDETRTransformer(nn.Module):
                 None,
             )
 
-        target, init_ref_points_unact, enc_topk_bboxes, enc_topk_logits = (
+        target, init_ref_points_unact, enc_topk_bboxes, enc_topk_logits, enc_output = (
             self._get_decoder_input(
                 memory, spatial_shapes, denoising_class, denoising_bbox_unact
             )
@@ -690,6 +703,11 @@ class RTDETRTransformer(nn.Module):
             if self.training and dn_meta is not None:
                 out["dn_aux_outputs"] = self._set_aux_loss(dn_out_logits, dn_out_bboxes)
                 out["dn_meta"] = dn_meta
+
+            # many2one loss
+            out["enc_outputs"] = self._set_aux_loss(
+                enc_output["enc_pred_logits"], enc_output["enc_pred_bbox"]
+            )
 
         return out
 
