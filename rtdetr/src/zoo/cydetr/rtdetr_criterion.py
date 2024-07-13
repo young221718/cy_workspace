@@ -266,8 +266,6 @@ class SetCriterion(nn.Module):
         target_boxes_list = [t["boxes"] for t in targets]
         target_label_list = [t["labels"] for t in targets]
         temp_losses = []
-        num_pos_idx = 0
-        num_neg_idx = 0
 
         for output, tgt_boxes, tgt_classes in zip(
             outputs,
@@ -297,8 +295,8 @@ class SetCriterion(nn.Module):
                     F.smooth_l1_loss(
                         src_boxes[pos_idx],
                         tgt_boxes[max_idx[pos_idx]].reshape(-1, 4),
-                        reduction="sum",
-                    ).flatten(0)
+                        reduction="mean",
+                    )
                 )
                 temp_losses.append(
                     torchvision.ops.sigmoid_focal_loss(
@@ -306,10 +304,10 @@ class SetCriterion(nn.Module):
                         target[max_idx[pos_idx]].squeeze(1).float(),
                         self.alpha,
                         self.gamma,
-                        reduction="sum",
+                        reduction="mean",
                     )
                 )
-                num_pos_idx += pos_idx.sum().cpu()
+                
 
             # negative sample loss
             if neg_idx.sum() > 0:
@@ -321,13 +319,13 @@ class SetCriterion(nn.Module):
                         neg_target.float(),
                         self.alpha,
                         self.gamma,
-                        reduction="sum",
+                        reduction="mean",
                     )
                 )
-                num_neg_idx += neg_idx.sum().cpu()
+                
 
-        loss = sum(temp_losses) / (num_pos_idx + num_neg_idx)
-
+        
+        loss = sum(temp_losses) / len(temp_losses)
         return {"loss_many2one": loss}
 
     def _get_src_permutation_idx(self, indices):

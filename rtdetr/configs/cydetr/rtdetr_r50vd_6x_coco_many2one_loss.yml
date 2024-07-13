@@ -11,4 +11,4 @@ __include__:
     "./include/rtdetr_r50vd_many2one_loss.yml",
   ]
 
-output_dir: /home/prml/StudentsWork/ChanYoung/Experiments/rt_detr/AAAI2025/many2one_loss
+output_dir: /home/work/StudentsWork/ChanYoung/Experiments/rt_detr/AAAI2025/many2one_loss

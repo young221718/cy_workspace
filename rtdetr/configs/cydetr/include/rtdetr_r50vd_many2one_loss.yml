@@ -31,7 +31,7 @@ HybridEncoder:
   dim_feedforward: 1024
   dropout: 0.
   enc_act: "gelu"
-  pe_temperature: 10000
+  pe_temperature: 20
 
   # cross
   expansion: 1.0
@@ -61,7 +61,7 @@ RTDETRPostProcessor:
   num_top_queries: 300
 
 SetCriterion:
-  weight_dict: { loss_vfl: 1, loss_bbox: 5, loss_giou: 2, loss_many2one: 1 }
+  weight_dict: { loss_vfl: 1, loss_bbox: 5, loss_giou: 2}
   losses: ["vfl", "boxes"]
   alpha: 0.75
   gamma: 2.0
