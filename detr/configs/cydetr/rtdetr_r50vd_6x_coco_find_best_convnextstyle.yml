@@ -1,3 +1,16 @@
+# 실험정보
+# 24-07-10
+# many2loss를 테스트하기 위한 코드
+
+__include__:
+  [
+    "../dataset/coco_detection.yml",
+    "../runtime.yml",
+    "./include/dataloader.yml",
+    "./include/optimizer.yml",
+  ]
+
+
 task: detection
 
 model: DETR
@@ -6,7 +19,7 @@ postprocessor: RTDETRPostProcessor
 
 DETR:
   backbone: PResNet
-  encoder: HybridEncoder
+  encoder: CYHybridEncoder
   decoder: CYDecoder
   multi_scale: [640]
 
@@ -19,7 +32,7 @@ PResNet:
   freeze_norm: True
   pretrained: True
 
-HybridEncoder:
+CYHybridEncoder:
   in_channels: [512, 1024, 2048]
   feat_strides: [8, 16, 32]
 
@@ -31,12 +44,12 @@ HybridEncoder:
   dim_feedforward: 1024
   dropout: 0.
   enc_act: "gelu"
-  pe_temperature: 20
+  pe_temperature: 10000
 
   # cross
   expansion: 1.0
   depth_mult: 1
-  act: "silu"
+  act: "gelu"
 
   # eval
   eval_spatial_size: [640, 640]
@@ -72,3 +85,8 @@ SetCriterion:
     # use_focal_loss: True
     alpha: 0.25
     gamma: 2.0
+
+
+
+
+output_dir: /home/work/StudentsWork/ChanYoung/Experiments/rt_detr/AAAI2025/find_best_convnextstyle

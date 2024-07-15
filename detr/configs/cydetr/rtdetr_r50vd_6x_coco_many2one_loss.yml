@@ -8,7 +8,7 @@ __include__:
     "../runtime.yml",
     "./include/dataloader.yml",
     "./include/optimizer.yml",
-    "./include/rtdetr_r50vd_many2one_loss.yml",
+    "./include/rtdetr_r50vd_find_best_basic.yml",
   ]
 
-output_dir: /home/work/StudentsWork/ChanYoung/Experiments/rt_detr/AAAI2025/many2one_loss
+output_dir: /home/work/StudentsWork/ChanYoung/Experiments/rt_detr/AAAI2025/find_best
