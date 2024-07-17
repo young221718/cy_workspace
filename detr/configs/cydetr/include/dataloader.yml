@@ -19,8 +19,8 @@ train_dataloader:
         - { type: SanitizeBoundingBoxes, min_size: 1 }
         - { type: ConvertBox, out_fmt: "cxcywh", normalize: True }
   shuffle: True
-  batch_size: 32
-  num_workers: 16
+  batch_size: 8
+  num_workers: 8
   collate_fn: default_collate_fn
 
 val_dataloader:
@@ -33,6 +33,6 @@ val_dataloader:
         - { type: ToImage }
         - { type: ConvertImageDtype }
   shuffle: False
-  batch_size: 32
-  num_workers: 16
+  batch_size: 8
+  num_workers: 8
   collate_fn: default_collate_fn
