@@ -89,4 +89,4 @@ SetCriterion:
 
 
 
-output_dir: /home/work/StudentsWork/ChanYoung/Experiments/rt_detr/AAAI2025/find_best_convnextstyle
+output_dir: /home/work/StudentsWork/ChanYoung/Experiments/rt_detr/AAAI2025/convnextstyle_with_ltrb_anchor2

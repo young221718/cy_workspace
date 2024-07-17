@@ -72,20 +72,6 @@ def get_contrastive_denoising_training_group(
             mask & pad_gt_mask, new_label, input_query_class
         )
 
-    # if label_noise_ratio > 0:
-    #     input_query_class = input_query_class.flatten()
-    #     pad_gt_mask = pad_gt_mask.flatten()
-    #     # half of bbox prob
-    #     # mask = torch.rand(input_query_class.shape, device=device) < (label_noise_ratio * 0.5)
-    #     mask = torch.rand_like(input_query_class) < (label_noise_ratio * 0.5)
-    #     chosen_idx = torch.nonzero(mask * pad_gt_mask).squeeze(-1)
-    #     # randomly put a new one here
-    #     new_label = torch.randint_like(chosen_idx, 0, num_classes, dtype=input_query_class.dtype)
-    #     # input_query_class.scatter_(dim=0, index=chosen_idx, value=new_label)
-    #     input_query_class[chosen_idx] = new_label
-    #     input_query_class = input_query_class.reshape(bs, num_denoising)
-    #     pad_gt_mask = pad_gt_mask.reshape(bs, num_denoising)
-
     if box_noise_scale > 0:
         known_bbox = box_cxcywh_to_xyxy(input_query_bbox)
         diff = torch.tile(input_query_bbox[..., 2:] * 0.5, [1, 1, 2]) * box_noise_scale
@@ -100,11 +86,6 @@ def get_contrastive_denoising_training_group(
         input_query_bbox = box_xyxy_to_cxcywh(known_bbox)
         input_query_bbox = inverse_sigmoid(input_query_bbox)
 
-    # class_embed = torch.concat([class_embed, torch.zeros([1, class_embed.shape[-1]], device=device)])
-    # input_query_class = torch.gather(
-    #     class_embed, input_query_class.flatten(),
-    #     axis=0).reshape(bs, num_denoising, -1)
-    # input_query_class = class_embed(input_query_class.flatten()).reshape(bs, num_denoising, -1)
     input_query_class = class_embed(input_query_class)
 
     tgt_size = num_denoising + num_queries
