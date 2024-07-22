@@ -32,7 +32,10 @@ def main(
     solver = TASKS[cfg.yaml_cfg["task"]](cfg)
 
     if args.test_only:
-        solver.val()
+        if args.save_pred:
+            solver.get_pred()
+        else:
+            solver.val()
     else:
         solver.fit()
 
@@ -62,6 +65,11 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--amp",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--compare",
         action="store_true",
         default=False,
     )

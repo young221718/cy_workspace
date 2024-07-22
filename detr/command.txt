@@ -1,1 +1,0 @@
-torchrun --nproc_per_node=2 tools/train.py -c configs/cydetr/rtdetr_r50vd_6x_coco.yml -r /home/prml/StudentsWork/ChanYoung/cy_workspace/detr/rtdetr_r50vd_2x_coco_objects365_from_paddle.pth --test-only
