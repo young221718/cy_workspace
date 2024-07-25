@@ -1,1 +1,6 @@
 torchrun --nproc_per_node=2 tools/train.py -c /home/prml/StudentsWork/ChanYoung/cy_workspace/detr/configs/cydetr/rtdetr_r50vd_6x_coco_superclass.yml -r /home/prml/StudentsWork/ChanYoung/cy_workspace/detr/output/superclass/checkpoint.pth --test-only --compare
+
+
+
+
+torchrun --nproc_per_node=2 tools/train.py -c configs/rtdetr/20240725_swap_self_and_cross.yml

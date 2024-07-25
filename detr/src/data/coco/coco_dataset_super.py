@@ -265,7 +265,7 @@ for k, v in supercategory.items():
     for i in v:
         supercategory_vk[i] = k - 1
 
-print(supercategory_vk)
+# print(supercategory_vk)
 # mscoco_category2label = {k: i for i, k in enumerate(mscoco_category2name.keys())}
 # mscoco_label2category = {v: k for k, v in mscoco_category2label.items()}
 

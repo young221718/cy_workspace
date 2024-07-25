@@ -18,7 +18,7 @@ from .utils import bias_init_with_prob
 from src.core import register
 
 
-__all__ = ["CY_Decoder"]
+__all__ = ["CYDecoder"]
 
 
 class MLP(nn.Module):
@@ -313,7 +313,7 @@ class TransformerDecoder(nn.Module):
 
 
 @register
-class CY_Decoder(nn.Module):
+class CYDecoder(nn.Module):
     __share__ = ["num_classes"]
 
     def __init__(
@@ -341,7 +341,7 @@ class CY_Decoder(nn.Module):
         aux_loss=True,
     ):
 
-        super(CY_Decoder, self).__init__()
+        super(CYDecoder, self).__init__()
         assert position_embed_type in [
             "sine",
             "learned",
