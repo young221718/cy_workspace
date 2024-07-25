@@ -6,6 +6,8 @@ __include__:
     "./include/optimizer.yml",
   ]
 
+output_dir: /home/work/StudentsWork/ChanYoung/Experiments/rt_detr/AAAI2025/20250725_swap_self_and_cross
+
 task: detection
 
 model: RTDETR
