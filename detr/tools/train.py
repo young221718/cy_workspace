@@ -32,7 +32,7 @@ def main(
     solver = TASKS[cfg.yaml_cfg["task"]](cfg)
 
     if args.test_only:
-        if args.save_pred:
+        if args.compare:
             solver.get_pred()
         else:
             solver.val()

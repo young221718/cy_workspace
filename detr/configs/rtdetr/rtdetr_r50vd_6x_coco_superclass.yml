@@ -1,0 +1,10 @@
+__include__:
+  [
+    "../dataset/coco_detection_super.yml",
+    "../runtime.yml",
+    "./include/dataloader_super.yml",
+    "./include/optimizer.yml",
+    "./include/rtdetr_r50vd_find_best_basic.yml",
+  ]
+
+output_dir: /home/prml/StudentsWork/ChanYoung/Experiments/rt_detr/AAAI2025/superclass_silu2333333
