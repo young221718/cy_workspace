@@ -18,7 +18,7 @@ from src.core import register
 
 
 @register
-class SetCriterion(nn.Module):
+class CYCriterion(nn.Module):
     """This class computes the loss for DETR.
     The process happens in two steps:
         1) we compute hungarian assignment between ground truth boxes and the outputs of the model
@@ -167,7 +167,7 @@ class SetCriterion(nn.Module):
             device=src_logits.device,
         )
         target_classes[idx] = target_classes_o
-        target = F.one_hot(target_classes, num_classes=self.num_classes + 1)[..., :-1]
+        target = F.one_hot(target_classes, num_classes=self.num_classes + 1)
 
         target_score_o = torch.zeros_like(target_classes, dtype=src_logits.dtype)
         target_score_o[idx] = ious.to(target_score_o.dtype)
@@ -181,29 +181,6 @@ class SetCriterion(nn.Module):
         )
         loss = loss.mean(1).sum() * src_logits.shape[1] / num_boxes
         return {"loss_vfl": loss}
-
-    def loss_foreground(self, outputs, targets, indices, num_boxes, log=True):
-        assert "pred_foreground" in outputs
-        fore_logits = outputs["pred_foreground"]
-
-        idx = self._get_src_permutation_idx(indices)
-        target_classes_o = torch.cat(
-            [t["labels"][J] for t, (_, J) in zip(targets, indices)]
-        )
-        target_classes = torch.full(
-            fore_logits.shape[:2],
-            self.num_classes,
-            dtype=torch.int64,
-            device=fore_logits.device,
-        )
-        target_classes[idx] = target_classes_o
-
-        target = F.one_hot(target_classes, num_classes=self.num_classes + 1)[..., :-1]
-        loss = F.binary_cross_entropy_with_logits(
-            fore_logits, target * 1.0, reduction="none"
-        )
-        loss = loss.mean(1).sum() * fore_logits.shape[1] / num_boxes
-        return {"loss_foreground": loss}
 
     @torch.no_grad()
     def loss_cardinality(self, outputs, targets, indices, num_boxes):
@@ -304,7 +281,6 @@ class SetCriterion(nn.Module):
             "bce": self.loss_labels_bce,
             "focal": self.loss_labels_focal,
             "vfl": self.loss_labels_vfl,
-            "foreground": self.loss_foreground,
         }
         assert loss in loss_map, f"do you really want to compute {loss} loss?"
         return loss_map[loss](outputs, targets, indices, num_boxes, **kwargs)
